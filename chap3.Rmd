@@ -1,0 +1,81 @@
+一般化線形モデル -ポアソン回帰-
+========================================================
+* データ解析のための統計モデリング入門
+    * http://www.amazon.co.jp/dp/400006973X
+        * p.40~65 3章
+
+```{r cache=T,warning=F,tidy=F}
+# http://hosho.ees.hokudai.ac.jp/~kubo/ce/IwanamiBook.html
+d<-read.csv("~/Desktop/data_modeling_tutorial/chap3/data3a.csv")
+str(d)
+summary(d)
+```
+```{r cache=T,warning=F,tidy=F}
+# データ全体を眺める
+plot(d[,c(2,1)],pch=c(21,19)[d$f])
+legend("topleft",legend=c("C","T"),pch=c(21,19))
+# ggplot2ライブラリでの表示
+# library('ggplot2')
+# qplot(data=d,y=y,x=x,col=f)
+
+# 施肥処理でグループ分けした箱ひげ図
+plot(d[,c(3,1)])
+# 施肥処理でグループ分けした箱ひげ図(ggplot2)
+# qplot(data=d,y=y,x=f,col=f,geom='boxplot')
+
+# ポアソン回帰 説明変数 数量型
+fit.x <- glm(y~x,data=d,family=poisson)
+print(fit.x) #最尤推定値 概要の表示
+summary(fit.x) # 詳細の表示
+```
+* Estimate : 推定値
+* Std.Error : 標準誤差(standard error,SE)の推定値
+* z value : z値 最尤推定値/SE Wald統計量
+* Pr(>|z|) : z値を平均,SEを1の正規分布における、マイナス無限大からゼロまでの値をとる確率。P値と考える場合も。
+```{r cache=T,warning=F,tidy=F}
+logLik(fit.x) # 最大対数尤度　あてはまりの良さ 大きい値であるほうが良い。
+```
+* df:自由度(degrees of freedom) 最尤推定した値は２個という意味。
+```{r cache=T,warning=F,tidy=F}
+# ポアソン回帰モデルと実測値の図示
+plot(d[,c(2,1)],pch=c(21,19)[d$f])
+legend("topleft",legend=c("C","T"),pch=c(21,19))
+xx <- seq(min(d$x),max(d$x),length=100)
+lines(xx,exp(1.29+0.0757*xx),lwd=2)
+# ポアソン回帰モデルと実測値の図示(predict関数)
+yy <- predict(fit.x,newdata=data.frame(x=xx),type='response')
+plot(d[,c(2,1)],pch=c(21,19)[d$f])
+legend("topleft",legend=c("C","T"),pch=c(21,19))
+lines(xx,yy,lwd=2)
+# ポアソン回帰 説明変数 因子型
+fit.f <- glm(y~f,data=d,family=poisson)
+summary(fit.f)
+logLik(fit.f) # 最大対数尤度
+# ポアソン回帰 説明変数 数量型＋因子型
+fit.all <- glm(y~x+f,data=d,family=poisson)
+summary(fit.all)
+logLik(fit.all) # 最大対数尤度
+```
+* p.65
+
+> 応答変数$y$を$\log y$のように変数変換して直線回帰することと、ポアソン回帰はまったく別ものであることに注意してください。試してみればわかりますが、両者の推定結果は一致しません。
+
+```{r cache=T,warning=F,tidy=F}
+fit.lm <- lm(log(y)~log(x),data=d)
+summary(fit.lm)
+xx <- seq(-5,25,length=100)
+yy.lm <- predict(fit.lm,newdata=data.frame(x=xx),type='response')
+yy.x <- predict(fit.x,newdata=data.frame(x=xx),type='response')
+plot(d[,c(2,1)],pch=c(21,19)[d$f])
+legend("topleft",legend=c("C","T"),pch=c(21,19))
+lines(xx,exp(yy.lm),lwd=2,col=2)
+lines(xx,yy.x,lwd=2,col=3)
+legend("topright",legend=c("fit.lm","fit.x"),lwd=2.5,col=c(2,3))
+# 範囲を広げて表示
+plot(d[,c(2,1)],pch=c(21,19)[d$f],xlim=c(-1,25),ylim=c(-1,25))
+legend("topleft",legend=c("C","T"),pch=c(21,19))
+lines(xx,exp(yy.lm),lwd=2,col=2)
+lines(xx,yy.x,lwd=2,col=3)
+legend("topright",legend=c("fit.lm","fit.x"),lwd=2.5,col=c(2,3))
+```
+
